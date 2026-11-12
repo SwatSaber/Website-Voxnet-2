@@ -1,0 +1,74 @@
+@import "tailwindcss";
+
+@theme {
+  --font-display: "Montserrat", "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-sans: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+
+  --color-vox-white: #ffffff;
+  --color-vox-surface: #f8f9fa;
+  --color-vox-border: #ebebeb;
+  --color-vox-ink: #1a1a1a;
+  --color-vox-muted: #525252;
+  --color-vox-orange-light: #ff8848;
+  --color-vox-orange-deep: #e7621b;
+  --color-vox-orange-text: #b84408;
+
+  --spacing-phi-xs: 0.625rem;
+  --spacing-phi-base: 1rem;
+  --spacing-phi-sm: 1.625rem;
+  --spacing-phi-md: 2.625rem;
+  --spacing-phi-lg: 4.25rem;
+  --spacing-phi-xl: 6.875rem;
+}
+
+@layer base {
+  html {
+    font-family: var(--font-sans);
+    color: #1a1a1a;
+    background-color: #ffffff;
+    font-size: 16px;
+    line-height: 1.618;
+  }
+
+  h1, h2, h3, .font-display {
+    font-family: var(--font-display);
+  }
+
+  h1, h2, h3 {
+    text-wrap: balance;
+  }
+}
+
+.vox-orange-gradient {
+  background: linear-gradient(135deg, #ff8848 0%, #e7621b 100%);
+}
+
+.vox-cta-gradient {
+  background: linear-gradient(135deg, #e7621b 0%, #c84b0a 100%);
+}
+
+.vox-cta-gradient:hover {
+  background: linear-gradient(135deg, #d95713 0%, #b33f06 100%);
+}
+
+.vox-conversion-gradient {
+  background: linear-gradient(135deg, #e7621b 0%, #cf4e0b 52%, #b53f05 100%);
+}
+
+.vox-hero-radiant {
+  background-color: #e7621b;
+  background-image:
+    radial-gradient(ellipse 68% 78% at 74% 40%, rgba(255, 166, 112, 0.42) 0%, rgba(255, 136, 72, 0.2) 42%, rgba(231, 98, 27, 0) 76%),
+    radial-gradient(ellipse 60% 65% at 18% 12%, rgba(255, 136, 72, 0.24) 0%, rgba(231, 98, 27, 0) 68%),
+    linear-gradient(128deg, #c74708 0%, #dc5813 32%, #e7621b 64%, #f4752e 100%);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

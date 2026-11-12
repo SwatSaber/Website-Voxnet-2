@@ -1,0 +1,8 @@
+{
+  "name": "Voxnet — Infrastruktur Komunikasi Bisnis & CPaaS Enterprise",
+  "description": "PT Lima Satu Tiga Global Tel-Access (Voxnet): Platform telephony cloud, SIP Trunk berkapasitas tinggi, penomoran resmi Indonesia, dan Managed Services berlisensi resmi Kominfo.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
