@@ -64,6 +64,26 @@
     linear-gradient(128deg, #c74708 0%, #dc5813 32%, #e7621b 64%, #f4752e 100%);
 }
 
+@keyframes vox-marquee-scroll {
+  0% {
+    transform: translate3d(0, 0, 0);
+  }
+  100% {
+    transform: translate3d(-50%, 0, 0);
+  }
+}
+
+.animate-marquee-smooth {
+  display: flex;
+  width: max-content;
+  will-change: transform;
+  animation: vox-marquee-scroll 32s linear infinite;
+}
+
+.animate-marquee-smooth:hover {
+  animation-play-state: paused;
+}
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
     animation-duration: 0.01ms !important;
@@ -72,3 +92,4 @@
     scroll-behavior: auto !important;
   }
 }
+

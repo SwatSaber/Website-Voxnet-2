@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { ClientLogosSection } from './components/ClientLogosSection';
 import { CompetitiveEdgeSection } from './components/CompetitiveEdgeSection';
 import { ConsultationSection } from './components/ConsultationSection';
 import { CredibilitySection } from './components/CredibilitySection';
@@ -53,6 +54,7 @@ export default function App() {
 
       <main className="flex-1">
         <HeroSection onScheduleClick={scrollToConsultation} />
+        <ClientLogosSection onExploreSolutions={scrollToConsultation} />
         <ProblemSection />
         <SolutionsSection onSelectSolutionForConsultation={handleSelectSolutionForConsultation} />
         <CompetitiveEdgeSection />
@@ -65,3 +67,4 @@ export default function App() {
     </div>
   );
 }
+

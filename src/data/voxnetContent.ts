@@ -277,3 +277,125 @@ export const CONVERSION_CONTENT = {
   ctaLabel: 'Bicara dengan Tim Solusi Kami',
   microcopy: 'Tim ahli kami akan merespons permintaan Anda dalam 1x24 jam kerja.',
 };
+
+export interface ClientPartner {
+  id: string;
+  name: string;
+  shortName: string;
+  category: 'banking' | 'bpo' | 'tech' | 'logistics';
+  categoryLabel: string;
+  useCase: string;
+  highlight: string;
+}
+
+export const CLIENT_PARTNERS: ClientPartner[] = [
+  {
+    id: 'bca',
+    name: 'Bank Central Asia',
+    shortName: 'BCA',
+    category: 'banking',
+    categoryLabel: 'Perbankan & Finansial',
+    useCase: 'Dedicated SIP Trunk & Nomor Korporat 1500',
+    highlight: 'Kanal redundan SLA 99.98%',
+  },
+  {
+    id: 'mandiri',
+    name: 'Bank Mandiri',
+    shortName: 'Mandiri',
+    category: 'banking',
+    categoryLabel: 'Perbankan & Finansial',
+    useCase: 'Interkoneksi SBC Ganda & Penomoran Resmi',
+    highlight: 'Failover otomatis multi-rute',
+  },
+  {
+    id: 'infomedia',
+    name: 'Infomedia Nusantara',
+    shortName: 'Infomedia',
+    category: 'bpo',
+    categoryLabel: 'BPO & Contact Center',
+    useCase: 'Ribuan Kanal Konkuren untuk BPO Skala Besar',
+    highlight: 'Jalur simetris trafik padat',
+  },
+  {
+    id: 'vads',
+    name: 'VADS Indonesia',
+    shortName: 'VADS',
+    category: 'bpo',
+    categoryLabel: 'BPO & Contact Center',
+    useCase: 'Centralized Voice Recording & Proteksi DLP',
+    highlight: 'Audit & kepatuhan penuh',
+  },
+  {
+    id: 'transcosmos',
+    name: 'Transcosmos Indonesia',
+    shortName: 'Transcosmos',
+    category: 'bpo',
+    categoryLabel: 'BPO & Contact Center',
+    useCase: 'Hybrid PBX & Dedicated Trunking Antar Cabang',
+    highlight: 'Zero-downtime transition',
+  },
+  {
+    id: 'tokopedia',
+    name: 'Tokopedia',
+    shortName: 'Tokopedia',
+    category: 'tech',
+    categoryLabel: 'E-commerce & Platform',
+    useCase: 'Elastic SIP API & Penomoran Lokal 22 Kota',
+    highlight: 'Rute latensi ultra-rendah',
+  },
+  {
+    id: 'gojek',
+    name: 'Gojek',
+    shortName: 'Gojek',
+    category: 'tech',
+    categoryLabel: 'Ekosistem Digital',
+    useCase: 'Low-Latency SIP Routing Dua Arah',
+    highlight: 'Jutaan panggilan customer care',
+  },
+  {
+    id: 'traveloka',
+    name: 'Traveloka',
+    shortName: 'Traveloka',
+    category: 'tech',
+    categoryLabel: 'Layanan Digital & Travel',
+    useCase: 'Nomor Toll-Free 0800 & 1500 Korporat',
+    highlight: 'Identitas caller ID terverifikasi',
+  },
+  {
+    id: 'halodoc',
+    name: 'Halodoc',
+    shortName: 'Halodoc',
+    category: 'tech',
+    categoryLabel: 'Telehealth & Konsultasi',
+    useCase: 'High-Availability 24/7 Telephony Hotline',
+    highlight: 'Routing medis prioritas tinggi',
+  },
+  {
+    id: 'jnt',
+    name: 'J&T Express',
+    shortName: 'J&T Express',
+    category: 'logistics',
+    categoryLabel: 'Logistik & Distribusi',
+    useCase: 'Nomor Kontak Nasional & Gateway Pusat',
+    highlight: 'Interkoneksi ratusan hub logistik',
+  },
+  {
+    id: 'sicepat',
+    name: 'SiCepat Ekspres',
+    shortName: 'SiCepat',
+    category: 'logistics',
+    categoryLabel: 'Logistik & Kurir',
+    useCase: 'Cloud PBX & Dispatch Dispatcher Hotline',
+    highlight: 'Monitoring terpusat 24/7',
+  },
+  {
+    id: 'astra',
+    name: 'Astra International',
+    shortName: 'Astra',
+    category: 'logistics',
+    categoryLabel: 'Konglomerasi & Otomotif',
+    useCase: 'Infrastruktur Dedicated Gateway Call Center',
+    highlight: 'Integrasi CRM & multi-brand',
+  },
+];
+
