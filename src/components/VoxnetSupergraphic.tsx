@@ -3,7 +3,7 @@ interface VoxnetSupergraphicProps {
   className?: string;
 }
 
-const VOXNET_SUPERGRAPHIC_SRC = '/assets/aistudio/Supergraphic_a7678cbe.png';
+const VOXNET_SUPERGRAPHIC_SRC = '/assets/aistudio/Supergraphic_trimmed.png';
 
 export function VoxnetSupergraphic({ tone = 'orange', className = '' }: VoxnetSupergraphicProps) {
   const isWhite = tone === 'white';

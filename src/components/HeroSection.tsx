@@ -12,9 +12,9 @@ const HERO_SPOKESPERSON_IMG =
   '/assets/aistudio/Gemini_Generated_Image_lc0zo1lc0zo1lc0z-tanpa-latar__1__9b351feb.png';
 
 const ENTERPRISE_METRICS = [
-  { value: '30+', label: 'Perusahaan Enterprise Aktif' },
+  { value: '30+', label: 'Pelanggan Enterprise' },
   { value: '22 Kota', label: 'Penomoran Lokal Resmi Indonesia' },
-  { value: '6 Jenis', label: 'Penomoran Pusat Panggilan' },
+  { value: '6 Format', label: 'Penomoran Pusat Panggilan' },
   { value: '10+ Tahun', label: 'Pengalaman Infrastruktur Telko' },
 ];
 
@@ -26,10 +26,35 @@ export function HeroSection({ onScheduleClick }: HeroSectionProps) {
       id="top"
       className="relative overflow-hidden vox-hero-radiant text-white border-b border-white/15"
     >
-      <VoxnetSupergraphic
-        tone="white"
-        className="hidden lg:block absolute -right-[110px] -bottom-[130px] w-[440px] h-auto opacity-[0.07] pointer-events-none"
+      {/* 1. Subtle Telco Grid */}
+      <div aria-hidden="true" className="absolute inset-0 pointer-events-none opacity-[0.035] select-none">
+        <svg className="w-full h-full" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <pattern id="hero-symmetrical-grid" width="40" height="40" patternUnits="userSpaceOnUse" x="50%">
+              <circle cx="20" cy="20" r="1.2" fill="#FFFFFF" />
+            </pattern>
+          </defs>
+          <rect width="100%" height="100%" fill="url(#hero-symmetrical-grid)" />
+        </svg>
+      </div>
+
+      {/* 2. Soft Ambient Radial Glow concentrated on right side */}
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute -right-[8%] lg:right-[4%] top-[40%] -translate-y-1/2 w-[550px] sm:w-[700px] lg:w-[900px] h-[550px] lg:h-[700px] rounded-full bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.14)_0%,rgba(255,185,120,0.08)_45%,transparent_72%)] blur-3xl select-none"
       />
+
+      {/* 3. Mirrored Voxnet Supergraphic framing the right side behind spokesperson */}
+      <div
+        aria-hidden="true"
+        className="pointer-events-none select-none absolute -right-[40px] sm:-right-[60px] lg:-right-[70px] xl:-right-[80px] top-[6%] sm:top-[4%] lg:top-[2%] w-[460px] sm:w-[580px] lg:w-[720px] xl:w-[820px] opacity-[0.085] scale-x-[-1]"
+      >
+        <VoxnetSupergraphic
+          tone="white"
+          className="w-full h-auto object-contain"
+        />
+      </div>
+
 
       <div
         className={`relative z-10 w-full ${PAGE_CONTAINER_CLASS} pt-[94px] pb-[44px] sm:pt-[104px] sm:pb-[50px] lg:pt-[110px] lg:pb-[54px] xl:pt-[122px] xl:pb-[64px]`}
@@ -42,7 +67,7 @@ export function HeroSection({ onScheduleClick }: HeroSectionProps) {
                 {HERO_CONTENT.eyebrow}
               </p>
 
-              <h1 className="font-display font-bold text-white tracking-[-0.025em] leading-[1.13] text-[clamp(2rem,2.85vw,3.35rem)] text-balance">
+              <h1 className="font-display font-bold text-white tracking-[-0.03em] leading-[1.1] text-[clamp(2.5rem,3.85vw,4.25rem)] text-balance">
                 {HERO_CONTENT.headline}
               </h1>
 

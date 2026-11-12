@@ -1,8 +1,7 @@
-import { PAGE_CONTAINER_CLASS } from '../utils/goldenRatio';
-
 interface ClientLogosSectionProps {
   onExploreSolutions?: () => void;
 }
+
 
 interface MinimalLogo {
   id: string;
@@ -204,13 +203,9 @@ export function ClientLogosSection(_props: ClientLogosSectionProps) {
   return (
     <section
       aria-label="Mitra Enterprise Voxnet"
-      className="bg-white border-b border-[#EBEBEB] py-7 sm:py-8 overflow-hidden"
+      className="bg-white border-b border-[#EBEBEB] py-5 sm:py-6 overflow-hidden"
     >
-      <div className={PAGE_CONTAINER_CLASS}>
-        <p className="text-center text-[11px] sm:text-[11.5px] font-semibold tracking-[0.16em] uppercase text-[#737373] mb-6">
-          Dipercaya oleh 30+ Perusahaan Enterprise &amp; Platform Nasional
-        </p>
-      </div>
+
 
       {/* Minimalist Marquee Row with subtle edge fade */}
       <div className="relative">

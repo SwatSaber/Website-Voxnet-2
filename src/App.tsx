@@ -6,7 +6,6 @@ import { CredibilitySection } from './components/CredibilitySection';
 import { Footer } from './components/Footer';
 import { HeroSection } from './components/HeroSection';
 import { Navbar } from './components/Navbar';
-import { ProblemSection } from './components/ProblemSection';
 import { SolutionsSection } from './components/SolutionsSection';
 import { UseCasesSection } from './components/UseCasesSection';
 import { SizingRecommendation } from './utils/consultationLogic';
@@ -55,7 +54,6 @@ export default function App() {
       <main className="flex-1">
         <HeroSection onScheduleClick={scrollToConsultation} />
         <ClientLogosSection onExploreSolutions={scrollToConsultation} />
-        <ProblemSection />
         <SolutionsSection onSelectSolutionForConsultation={handleSelectSolutionForConsultation} />
         <CompetitiveEdgeSection />
         <UseCasesSection onApplyConfiguration={handleApplyConfiguration} />

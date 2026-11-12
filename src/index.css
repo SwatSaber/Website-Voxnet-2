@@ -59,9 +59,8 @@
 .vox-hero-radiant {
   background-color: #e7621b;
   background-image:
-    radial-gradient(ellipse 68% 78% at 74% 40%, rgba(255, 166, 112, 0.42) 0%, rgba(255, 136, 72, 0.2) 42%, rgba(231, 98, 27, 0) 76%),
-    radial-gradient(ellipse 60% 65% at 18% 12%, rgba(255, 136, 72, 0.24) 0%, rgba(231, 98, 27, 0) 68%),
-    linear-gradient(128deg, #c74708 0%, #dc5813 32%, #e7621b 64%, #f4752e 100%);
+    radial-gradient(circle 800px at 50% 45%, rgba(255, 175, 115, 0.28) 0%, rgba(244, 117, 46, 0.12) 50%, rgba(231, 98, 27, 0) 80%),
+    linear-gradient(180deg, #df5c16 0%, #e7621b 50%, #d85512 100%);
 }
 
 @keyframes vox-marquee-scroll {

@@ -36,9 +36,9 @@ export interface CoverageCity {
 
 export const HERO_CONTENT = {
   eyebrow: 'Mitra Infrastruktur Komunikasi Bisnis & CPaaS',
-  headline: 'Kelola Ribuan Panggilan Setiap Hari Tanpa Takut Sistem Tumbang.',
+  headline: 'Kelola Ribuan Panggilan Setiap Hari Tanpa Takut Sistem Tumbang',
   subheadline:
-    'Platform cloud telephony dan SIP Trunk berkapasitas tinggi untuk kelancaran komunikasi perusahaan Anda. Mudah diintegrasikan, skalabel, dan patuh penuh terhadap regulasi Indonesia.',
+    'Solusi Telefoni dan SIP Trunk berkapasitas tinggi untuk kelancaran komunikasi perusahaan Anda. Mudah diintegrasikan, skalabel, dan patuh penuh terhadap regulasi Indonesia.',
   primaryCta: 'Jadwalkan Sesi Diskusi',
   secondaryCta: 'Pelajari Solusi Kami',
   trustItems: [
