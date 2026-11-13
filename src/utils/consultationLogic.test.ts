@@ -15,8 +15,10 @@ test('calculateInfrastructureRecommendation scales concurrent SIP channels and r
     numbering: 'local-22',
   });
   assert.ok(smallSaas.recommendedChannels >= 30);
+  assert.equal(smallSaas.estimatedMonthlyMinutes, 115500);
   assert.equal(smallSaas.sbcTopology, 'Dual-Node High-Availability SBC');
   assert.match(smallSaas.summaryText, /Cloud PBX Multi-Region/);
+  assert.equal(smallSaas.numberingLabel, 'Penomoran Lokal Resmi (22 Kota)');
 
   const enterpriseBpo = calculateInfrastructureRecommendation({
     sector: 'bpo',
@@ -25,8 +27,10 @@ test('calculateInfrastructureRecommendation scales concurrent SIP channels and r
     numbering: '1500',
   });
   assert.ok(enterpriseBpo.recommendedChannels > smallSaas.recommendedChannels);
+  assert.equal(enterpriseBpo.estimatedMonthlyMinutes, 4620000);
   assert.equal(enterpriseBpo.sbcTopology, 'Active-Active Geo-Redundant SBC');
   assert.equal(enterpriseBpo.securityLayer, 'IP Whitelisting + Enkripsi TLS/SRTP + DLP Suara');
+  assert.equal(enterpriseBpo.numberingLabel, 'Call Center Komdigi (140XY / 150XYZ / 1500XYZ)');
 });
 
 test('filterCoverageCities matches 22 Indonesian cities by region and area code', () => {
@@ -112,4 +116,24 @@ test('golden ratio spatial scale produces balanced 1440px desktop margins and 1.
   assert.equal(cols.majorColumn, 728);
   assert.equal(cols.minorColumn, 450);
   assert.ok(Math.abs(cols.ratio - PHI) < 0.005);
+});
+
+import { filterCallCenterNumbers, getCallCenterFormatLabel } from './consultationLogic';
+
+test('filterCallCenterNumbers filters by format sub-tab and query accurately', () => {
+  const sampleData = {
+    allNumbers: ['14027', '150103', '1500950', '1500951'],
+    sample140: ['14027'],
+    sample150: ['150103'],
+    sample1500: ['1500950', '1500951'],
+  };
+
+  assert.equal(filterCallCenterNumbers(sampleData, 'all', '').length, 4);
+  assert.deepEqual(filterCallCenterNumbers(sampleData, '140', ''), ['14027']);
+  assert.deepEqual(filterCallCenterNumbers(sampleData, '1500', '951'), ['1500951']);
+  assert.deepEqual(filterCallCenterNumbers(sampleData, 'all', '1501'), ['150103']);
+
+  assert.equal(getCallCenterFormatLabel('14027'), '140XY');
+  assert.equal(getCallCenterFormatLabel('150103'), '150XYZ');
+  assert.equal(getCallCenterFormatLabel('1500950'), '1500XYZ');
 });

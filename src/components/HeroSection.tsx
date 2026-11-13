@@ -13,7 +13,7 @@ const HERO_SPOKESPERSON_IMG =
 
 const ENTERPRISE_METRICS = [
   { value: '30+', label: 'Pelanggan Enterprise' },
-  { value: '22 Kota', label: 'Penomoran Lokal Resmi Indonesia' },
+  { value: '22 Kota', label: 'Penomoran Lokal Indonesia' },
   { value: '6 Format', label: 'Penomoran Pusat Panggilan' },
   { value: '10+ Tahun', label: 'Pengalaman Infrastruktur Telko' },
 ];
@@ -44,10 +44,10 @@ export function HeroSection({ onScheduleClick }: HeroSectionProps) {
         className="pointer-events-none absolute -right-[8%] lg:right-[4%] top-[40%] -translate-y-1/2 w-[550px] sm:w-[700px] lg:w-[900px] h-[550px] lg:h-[700px] rounded-full bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.14)_0%,rgba(255,185,120,0.08)_45%,transparent_72%)] blur-3xl select-none"
       />
 
-      {/* 3. Mirrored Voxnet Supergraphic framing the right side behind spokesperson */}
+      {/* 3. Mirrored Voxnet Supergraphic in bottom right corner (cropped elegantly) */}
       <div
         aria-hidden="true"
-        className="pointer-events-none select-none absolute -right-[40px] sm:-right-[60px] lg:-right-[70px] xl:-right-[80px] top-[6%] sm:top-[4%] lg:top-[2%] w-[460px] sm:w-[580px] lg:w-[720px] xl:w-[820px] opacity-[0.085] scale-x-[-1]"
+        className="pointer-events-none select-none absolute -right-[60px] sm:-right-[90px] lg:-right-[120px] -bottom-[80px] sm:-bottom-[120px] lg:-bottom-[140px] w-[460px] sm:w-[580px] lg:w-[720px] xl:w-[820px] opacity-[0.11] scale-x-[-1]"
       >
         <VoxnetSupergraphic
           tone="white"

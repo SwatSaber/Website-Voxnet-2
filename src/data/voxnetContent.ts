@@ -108,7 +108,7 @@ export const SOLUTION_PILLARS: SolutionPillar[] = [
   {
     id: 'numbering',
     number: '03',
-    title: 'Penomoran Resmi Seluruh Indonesia',
+    title: 'Penomoran Seluruh Indonesia',
     summary:
       'Bangun kredibilitas bisnis dengan nomor lokal resmi di 22 kota besar Indonesia, hingga nomor korporat 1500 dan bebas pulsa 0800.',
     deploymentOptions: ['Nomor Lokal 22 Kota', 'Access Number 1500', 'Toll-Free 0800'],
@@ -165,16 +165,16 @@ export const USE_CASES: UseCaseProfile[] = [
     label: 'Call Center & BPO',
     headline: 'Kapasitas Interkoneksi SBC untuk Operasi Contact Center Skala Besar',
     description:
-      'Tangani jutaan menit trafik percakapan secara lancar dengan dukungan interkoneksi Session Border Controller (SBC) yang sangat stabil.',
+      'Tangani jutaan menit trafik percakapan secara stabil dengan interkoneksi Session Border Controller (SBC) aktif-aktif serta dukungan perekaman terpusat.',
     recommendedPbx: 'hybrid',
     recommendedNumbering: '1500',
     defaultDailyCalls: 35000,
     architectureNotes: [
-      'Interkoneksi langsung ke SBC aktif-aktif dengan pemisahan trafik inbound & outbound',
-      'Dukungan rekaman suara terpusat serta proteksi cegah bocor data (DLP) untuk agen BPO',
-      'Kompatibel penuh dengan platform dialer, Omnichannel, dan CRM perusahaan',
+      'Interkoneksi langsung ke SBC aktif-aktif dengan pemisahan jalur trafik inbound & outbound',
+      'Perekaman suara terpusat serta proteksi cegah kebocoran data (DLP) untuk operasional agen BPO',
+      'Kompatibel penuh dengan platform dialer, Omnichannel, dan CRM perusahaan tanpa penguncian vendor',
     ],
-    deliverables: ['SIP Trunk Multi-Node', 'Nomor 1500 / 0800', 'Voice Recording & DLP'],
+    deliverables: ['SIP Trunk Multi-Node', 'Call Center 140 / 150 / 1500', 'Voice Recording & DLP'],
   },
   {
     id: 'saas-ai',
@@ -186,8 +186,8 @@ export const USE_CASES: UseCaseProfile[] = [
     recommendedNumbering: 'local-22',
     defaultDailyCalls: 12000,
     architectureNotes: [
-      'Routing SIP dua arah latensi rendah untuk stream audio real-time ke engine Voice AI',
-      'Penyediaan nomor lokal resmi di 22 kota untuk identitas panggilan bisnis yang terpercaya',
+      'Routing SIP dua arah latensi rendah untuk streaming audio real-time ke engine Voice AI',
+      'Ketersediaan nomor lokal 22 kota serta terminasi langsung ke jaringan seluler Indonesia',
       'Keamanan IP Whitelisting dan autentikasi klaster cloud yang rapi untuk tim developer',
     ],
     deliverables: ['Elastic Cloud SIP Trunk', 'Nomor Lokal 22 Kota', 'API & Webhook Routing'],
@@ -195,18 +195,67 @@ export const USE_CASES: UseCaseProfile[] = [
   {
     id: 'global-telco',
     label: 'Mitra Telekomunikasi Global',
-    headline: 'Akses Infrastruktur Legal & Penomoran Lokal untuk Ekspansi Indonesia',
+    headline: 'Akses Infrastruktur Legal & Penomoran Nasional untuk Ekspansi Indonesia',
     description:
-      'Dapatkan dukungan kepatuhan regulasi, interkoneksi POP lokal Jakarta, dan alokasi penomoran resmi untuk ekspansi klien global ke Indonesia.',
+      'Dapatkan kepatuhan regulasi penuh, interkoneksi POP lokal Jakarta, dan alokasi penomoran resmi untuk kebutuhan klien multinasional di Indonesia.',
     recommendedPbx: 'on-prem',
     recommendedNumbering: '0800',
     defaultDailyCalls: 50000,
     architectureNotes: [
-      'Kepatuhan penuh terhadap lisensi Kominfo (Jasa Call Center, PSE, dan ISP) tanpa hambatan birokrasi lokal',
-      'Interkoneksi carrier-grade ke titik POP Jakarta untuk terminasi klien multinasional',
-      'Alokasi nomor lokal 22 kota serta akses 1500/0800 untuk perusahaan multinasional',
+      'Kepatuhan penuh lisensi Kominfo (Jasa Call Center, PSE, dan ISP) tanpa hambatan birokrasi lokal',
+      'Interkoneksi carrier-grade ke titik POP Jakarta dengan failover otomatis multi-rute',
+      'Dukungan penomoran lokal 22 kota, Call Center Komdigi, hingga Intelligent Network (0800/0804/0807)',
     ],
-    deliverables: ['Carrier SBC Interconnect', 'Kepatuhan Regulasi Kominfo', 'Penomoran Multi-Kota'],
+    deliverables: ['Carrier SBC Interconnect', 'Kepatuhan Kominfo', 'IN 0800 / 0804 / 0807'],
+  },
+];
+
+export interface MobilePrefix {
+  operator: string;
+}
+
+export interface IntelligentNetworkAccess {
+  prefix: string;
+  name: string;
+  type: string;
+  description: string;
+  billingModel: string;
+  sampleStock: string[];
+}
+
+export const INDONESIA_MOBILE_PREFIXES: MobilePrefix[] = [
+  {
+    operator: 'Indosat Ooredoo Hutchison (IM3, Tri)',
+  },
+  {
+    operator: 'Smartfren',
+  },
+];
+
+export const INTELLIGENT_NETWORK_SERVICES: IntelligentNetworkAccess[] = [
+  {
+    prefix: '0800-1-XXXX',
+    name: 'Toll-Free 0800 (Bebas Pulsa Nasional)',
+    type: 'Bebas Pulsa Pelanggan',
+    description: 'Biaya panggilan ditanggung sepenuhnya oleh perusahaan penerima sehingga pelanggan dapat menghubungi tanpa beban pulsa. Ideal untuk perbankan, asuransi, dan layanan pengaduan.',
+    billingModel: '100% ditanggung perusahaan pemilik nomor (bebas pulsa bagi pemanggil)',
+    sampleStock: ['0800-1-8899', '0800-1-7700', '0800-1-5566', '0800-1-2233', '0800-1-9090', '0800-1-4500'],
+  },
+  {
+    prefix: '0804-1-XXXX',
+    name: 'Split-Charge 0804 (Bagi Biaya Tarif Lokal)',
+    type: 'Bagi Biaya (Split Charging)',
+    description: 'Tarif panggilan dibagi antara pemanggil dan perusahaan penerima. Pelanggan dari seluruh wilayah Indonesia hanya dikenakan tarif setara panggilan lokal.',
+    billingModel: 'Pemanggil hanya membayar tarif pulsa lokal; selisih jarak ditanggung perusahaan',
+    sampleStock: ['0804-1-8088', '0804-1-8181', '0804-1-7890', '0804-1-6543', '0804-1-5005', '0804-1-2470'],
+  },
+  {
+    prefix: '0807-1-XXXX',
+    name: 'Universal Access Number 0807 (Akses Tunggal)',
+    type: 'Akses Tarif Lokal Tunggal',
+    description: 'Satu nomor akses seragam untuk seluruh cabang nasional dengan pembebanan tarif panggilan lokal standar bagi penelepon dari kota mana pun.',
+    billingModel: 'Tarif lokal standar dibebankan kepada pemanggil dari seluruh Indonesia',
+    sampleStock: ['0807-1-9009', '0807-1-8500', '0807-1-7007', '0807-1-6006', '0807-1-3003', '0807-1-1001'],
   },
 ];
 

@@ -1,18 +1,37 @@
 import { useMemo, useState } from 'react';
 import {
+  AlertCircle,
   ArrowRight,
   Check,
+  CheckCircle2,
   ChevronDown,
-  ChevronUp,
+  ExternalLink,
+  Globe2,
   Hash,
+  Headphones,
   Network,
+  PhoneForwarded,
+  RefreshCw,
   Search,
   Server,
   ShieldCheck,
+  Smartphone,
   X,
 } from 'lucide-react';
-import { COVERAGE_CITIES, SOLUTION_PILLARS, SolutionPillar } from '../data/voxnetContent';
-import { filterCoverageCities } from '../utils/consultationLogic';
+import {
+  COVERAGE_CITIES,
+  INDONESIA_MOBILE_PREFIXES,
+  INTELLIGENT_NETWORK_SERVICES,
+  SOLUTION_PILLARS,
+  SolutionPillar,
+} from '../data/voxnetContent';
+import komdigiData from '../data/komdigiCallCenterNumbers.json';
+import {
+  CallCenterFormat,
+  filterCallCenterNumbers,
+  filterCoverageCities,
+  getCallCenterFormatLabel,
+} from '../utils/consultationLogic';
 import { PAGE_CONTAINER_CLASS, SECTION_PADDING_Y_CLASS } from '../utils/goldenRatio';
 
 interface SolutionsSectionProps {
@@ -35,59 +54,123 @@ const PILLAR_TARGETS: Record<SolutionPillar['id'], string> = {
   'managed-services': 'Perusahaan Kepatuhan Ketat & Tim IT Efisien',
 };
 
-const COMPARISON_ROWS = [
-  {
-    feature: 'Topologi & Penempatan',
-    pbx: 'Cloud, On-Premises, atau Hybrid',
-    'sip-trunk': 'Direct SBC Interconnect (Carrier-grade)',
-    numbering: 'Penomoran Virtual & PSTN Interconnect',
-    'managed-services': 'Dedicated Managed NOC & Managed Server',
-  },
-  {
-    feature: 'Kapasitas Skalabilitas',
-    pbx: '50 s/d 10.000+ Ekstensi aktif',
-    'sip-trunk': 'Ribuan kanal panggilan konkuren per node',
-    numbering: '22 Kota + Alokasi 1500/0800',
-    'managed-services': 'Skalabilitas tanpa batas (Enterprise NOC)',
-  },
-  {
-    feature: 'Enkripsi & Keamanan',
-    pbx: 'TLS / SRTP & VPN Tunneling',
-    'sip-trunk': 'Strict IP Whitelisting & Firewall SBC',
-    numbering: 'Legalitas Operator Resmi Kominfo',
-    'managed-services': 'DLP, Enkripsi Rekaman & Audit Trail',
-  },
-  {
-    feature: 'Integrasi Sistem',
-    pbx: 'REST API, Webhook, SIPREC CRM',
-    'sip-trunk': 'SIP Standard RFC 3261 / FreePBX / Asterisk',
-    numbering: 'Mapping Caller ID & DID Dinamis',
-    'managed-services': 'Dashboard Monitoring & Alert Real-time',
-  },
-  {
-    feature: 'SLA Dukungan Teknis',
-    pbx: '99.9% Uptime dengan Backup',
-    'sip-trunk': '99.99% Uptime Active-Active Dual SBC',
-    numbering: 'Registrasi Resmi & Garansi Jalur Telko',
-    'managed-services': 'Engineering Support 24/7 Response <15 Menit',
-  },
-];
-
 export function SolutionsSection({ onSelectSolutionForConsultation }: SolutionsSectionProps) {
   // Modal state for "Pelajari Lebih Lanjut"
   const [detailPillar, setDetailPillar] = useState<SolutionPillar | null>(null);
 
-  // State for City Directory
-  const [showCityExplorer, setShowCityExplorer] = useState(false);
+  // Numbering Directory Categories: 'local' | 'mobile' | 'callcenter' | 'in'
+  type DirectoryTab = 'local' | 'mobile' | 'callcenter' | 'in';
+  const [activeDirectoryTab, setActiveDirectoryTab] = useState<DirectoryTab>('local');
+  const [showDirectory, setShowDirectory] = useState(false);
+
+  // Filters for Local 22 Kota
   const [selectedRegion, setSelectedRegion] = useState('Semua');
   const [cityQuery, setCityQuery] = useState('');
 
-  // State for Comparison Matrix Table
-  const [showFullMatrix, setShowFullMatrix] = useState(false);
+  // Call Center Data State (Pre-seeded with Komdigi, refreshed dynamically on button click)
+  interface KomdigiState {
+    total: number;
+    count140: number;
+    count150: number;
+    count1500: number;
+    sample140: string[];
+    sample150: string[];
+    sample1500: string[];
+    allNumbers: string[];
+    lastUpdated?: string;
+    source?: string;
+  }
 
+  const [callCenterData, setCallCenterData] = useState<KomdigiState>({
+    ...komdigiData,
+    lastUpdated: (komdigiData as unknown as { lastUpdated?: string }).lastUpdated || '12 November 2026, 08:03 WIB',
+    source: (komdigiData as unknown as { source?: string }).source || 'Direktorat Telekomunikasi Komdigi RI',
+  });
+  const [isSyncingKomdigi, setIsSyncingKomdigi] = useState(false);
+  const [syncStatus, setSyncStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
+  const [syncFeedback, setSyncFeedback] = useState<string | null>(null);
+
+  // Filters & Pagination for Call Center 140XY, 150XYZ, 1500XYZ (Komdigi data)
+  const PAGE_SIZE = 48;
+  const [callCenterSubTab, setCallCenterSubTab] = useState<CallCenterFormat>('all');
+  const [callCenterQuery, setCallCenterQuery] = useState('');
+  const [visibleCallCenterCount, setVisibleCallCenterCount] = useState(PAGE_SIZE);
+
+  const handleCallCenterSubTabChange = (tab: CallCenterFormat) => {
+    setCallCenterSubTab(tab);
+    setVisibleCallCenterCount(PAGE_SIZE);
+  };
+
+  const handleCallCenterQueryChange = (value: string) => {
+    setCallCenterQuery(value);
+    setVisibleCallCenterCount(PAGE_SIZE);
+  };
+
+  // Handle dynamic refresh specifically on user button press
+  const handleRefreshKomdigi = async () => {
+    if (isSyncingKomdigi) return;
+    setIsSyncingKomdigi(true);
+    setSyncStatus('loading');
+    setSyncFeedback('Menghubungkan ke portal Dittel Komdigi RI...');
+
+    try {
+      const res = await fetch('/api/komdigi-numbers/refresh', { method: 'POST' });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || 'Gagal memulai sinkronisasi');
+
+      setSyncFeedback('Mengambil alokasi data penomoran terbaru dari portal Dittel Komdigi RI...');
+
+      // Poll periodically until finished or max 25 seconds
+      const startTime = Date.now();
+      const interval = setInterval(async () => {
+        try {
+          const statusRes = await fetch('/api/komdigi-numbers');
+          const statusData = await statusRes.json();
+          if (statusData.success && statusData.data) {
+            if (!statusData.isRefreshing || Date.now() - startTime > 25000) {
+              clearInterval(interval);
+              setCallCenterData(statusData.data);
+              setIsSyncingKomdigi(false);
+              setSyncStatus('success');
+              setSyncFeedback(
+                `Data penomoran berhasil disinkronkan (${statusData.data.total.toLocaleString('id-ID')} nomor tersedia).`
+              );
+              setTimeout(() => {
+                setSyncFeedback(null);
+                setSyncStatus('idle');
+              }, 4500);
+            }
+          }
+        } catch {
+          // ignore transient poll error
+        }
+      }, 2000);
+    } catch {
+      setIsSyncingKomdigi(false);
+      setSyncStatus('error');
+      setSyncFeedback('Gagal menghubungi layanan sinkronisasi. Menampilkan data resmi tersimpan.');
+      setTimeout(() => {
+        setSyncFeedback(null);
+        setSyncStatus('idle');
+      }, 4500);
+    }
+  };
+
+  // Filtered Cities
   const filteredCities = useMemo(
     () => filterCoverageCities(COVERAGE_CITIES, selectedRegion, cityQuery),
     [selectedRegion, cityQuery]
+  );
+
+  // Filtered Komdigi Call Center Numbers (full filtered list + paginated slice)
+  const filteredCallCenterNumbers = useMemo(
+    () => filterCallCenterNumbers(callCenterData, callCenterSubTab, callCenterQuery),
+    [callCenterData, callCenterSubTab, callCenterQuery]
+  );
+
+  const displayedCallCenterNumbers = useMemo(
+    () => filteredCallCenterNumbers.slice(0, visibleCallCenterCount),
+    [filteredCallCenterNumbers, visibleCallCenterCount]
   );
 
   return (
@@ -152,164 +235,561 @@ export function SolutionsSection({ onSelectSolutionForConsultation }: SolutionsS
           })}
         </div>
 
-        {/* Collapsible Architecture Comparison Matrix */}
-        <div className="mt-[36px] bg-[#FAFAFA] border border-[#E5E5E5] rounded-2xl overflow-hidden">
-          <div className="p-[20px] sm:p-[24px] flex items-center justify-between border-b border-[#EBEBEB] bg-white">
-            <div className="space-y-[2px]">
-              <h4 className="font-display text-[17px] font-bold text-[#1A1A1A]">
-                Matriks Perbandingan Kapabilitas Arsitektur
-              </h4>
-              <p className="text-[13px] text-[#595959]">
-                Komparasi langsung parameter teknis, skalabilitas, dan integrasi antar 4 pilar Voxnet.
-              </p>
-            </div>
-            <button
-              type="button"
-              onClick={() => setShowFullMatrix((prev) => !prev)}
-              className="inline-flex items-center gap-[6px] px-3.5 py-1.5 rounded-lg border border-[#E0E0E0] bg-white text-[13px] font-semibold text-[#B84408] hover:bg-[#FFF8F5] transition-colors cursor-pointer"
-            >
-              <span>{showFullMatrix ? 'Sembunyikan Matriks' : 'Buka Matriks Perbandingan'}</span>
-              {showFullMatrix ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-            </button>
-          </div>
 
-          {showFullMatrix && (
-            <div className="overflow-x-auto">
-              <table className="w-full text-left border-collapse text-[13px]">
-                <thead>
-                  <tr className="border-b border-[#EBEBEB] bg-[#F7F7F7]">
-                    <th className="py-[12px] px-[20px] font-bold text-[#1A1A1A] w-[200px]">
-                      Parameter
-                    </th>
-                    <th className="py-[12px] px-[16px] font-bold text-[#1A1A1A]">
-                      01. PBX Fleksibel
-                    </th>
-                    <th className="py-[12px] px-[16px] font-bold text-[#1A1A1A]">
-                      02. SIP Trunk Masif
-                    </th>
-                    <th className="py-[12px] px-[16px] font-bold text-[#1A1A1A]">
-                      03. Penomoran 22 Kota
-                    </th>
-                    <th className="py-[12px] px-[16px] font-bold text-[#1A1A1A]">
-                      04. Managed Services
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-[#EBEBEB]">
-                  {COMPARISON_ROWS.map((row) => (
-                    <tr key={row.feature} className="hover:bg-white transition-colors">
-                      <td className="py-[12px] px-[20px] font-semibold text-[#1A1A1A]">
-                        {row.feature}
-                      </td>
-                      <td className="py-[12px] px-[16px] text-[#4A4A4A]">{row.pbx}</td>
-                      <td className="py-[12px] px-[16px] text-[#4A4A4A]">{row['sip-trunk']}</td>
-                      <td className="py-[12px] px-[16px] text-[#4A4A4A]">{row.numbering}</td>
-                      <td className="py-[12px] px-[16px] text-[#4A4A4A]">{row['managed-services']}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </div>
 
-        {/* 22-City Numbering Directory Accordion */}
-        <div className="mt-[24px] bg-[#F8F9FA] border border-[#EBEBEB] rounded-[16px] p-[24px] lg:p-[32px]">
+        {/* Comprehensive Multi-Format Numbering Directory Accordion */}
+        <div className="mt-[28px] bg-[#F8F9FA] border border-[#E5E5E5] rounded-[20px] p-[22px] sm:p-[28px] lg:p-[32px] transition-all">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-[20px]">
-            <div className="space-y-[6px]">
-              <div className="flex items-center gap-[8px]">
-                <Hash className="w-4 h-4 text-[#B84408]" />
-                <h3 className="font-display text-[19px] sm:text-[21px] font-bold text-[#1A1A1A] leading-[1.272]">
-                  Direktori Penomoran Resmi 22 Kota &amp; Nomor 1500 / 0800
-                </h3>
-              </div>
+            <div className="space-y-[6px] max-w-[76ch]">
+              <p className="text-[12.5px] font-semibold text-[#B84408]">
+                Katalog Penomoran
+              </p>
+              <h3 className="font-display text-[20px] sm:text-[22px] font-bold text-[#1A1A1A] leading-[1.28] text-balance">
+                Direktori Penomoran &amp; Kode Akses Telekomunikasi
+              </h3>
               <p className="text-[13.5px] text-[#525252] leading-[1.6]">
-                Cek kode area lokal yang siap diaktifkan untuk kehadiran bisnis regional perusahaan Anda.
+                Telusuri cakupan nomor lokal 22 kota, rute operator seluler Indonesia, ketersediaan kode akses Pusat Panggilan Informasi (140XY, 150XYZ, 1500XYZ) dari Komdigi RI, serta layanan Intelligent Network (0800, 0804, 0807).
               </p>
             </div>
 
             <button
               type="button"
-              onClick={() => setShowCityExplorer((prev) => !prev)}
-              aria-expanded={showCityExplorer}
-              aria-controls="voxnet-city-directory"
-              className="inline-flex items-center justify-center px-[22px] py-[11px] min-h-[44px] rounded-lg bg-white border border-[#EBEBEB] hover:border-[#1A1A1A] text-[13.5px] font-semibold text-[#1A1A1A] transition-colors whitespace-nowrap shrink-0 cursor-pointer shadow-2xs"
+              onClick={() => setShowDirectory((prev) => !prev)}
+              aria-expanded={showDirectory}
+              aria-controls="voxnet-numbering-directory"
+              className="inline-flex items-center justify-center gap-[8px] px-[20px] py-[11px] min-h-[44px] rounded-lg bg-white border border-[#D4D4D4] hover:border-[#1A1A1A] text-[13.5px] font-semibold text-[#1A1A1A] transition-colors whitespace-nowrap shrink-0 cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#E7621B]"
             >
-              {showCityExplorer ? 'Tutup Direktori Kota' : 'Buka Daftar 22 Kota'}
+              <span>{showDirectory ? 'Tutup Direktori Penomoran' : 'Buka Direktori Penomoran'}</span>
+              <ChevronDown
+                className={`w-4 h-4 text-[#525252] transition-transform duration-200 ${showDirectory ? 'rotate-180' : ''}`}
+              />
             </button>
           </div>
 
-          {showCityExplorer && (
-            <div id="voxnet-city-directory" className="mt-[24px] pt-[24px] border-t border-[#EBEBEB] space-y-[22px]">
-              <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-[16px]">
-                <div className="flex flex-wrap items-center gap-[8px]" role="group" aria-label="Filter wilayah Indonesia">
-                  {REGIONS.map((region) => {
-                    const selected = selectedRegion === region;
-                    return (
+          {showDirectory && (
+            <div id="voxnet-numbering-directory" className="mt-[24px] pt-[24px] border-t border-[#E5E5E5] space-y-[24px]">
+              {/* Category Tab Bar: Minimalist Editorial Hairline Tabs with Group Dividers */}
+              <div
+                role="tablist"
+                aria-label="Kategori Penomoran Telekomunikasi"
+                className="grid grid-cols-1 sm:grid-cols-2 gap-[8px] lg:flex lg:flex-wrap xl:flex-nowrap lg:items-center lg:gap-x-[16px] xl:gap-x-[20px] lg:gap-y-[8px] lg:border-b lg:border-[#E5E5E5]"
+              >
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={activeDirectoryTab === 'local'}
+                  onClick={() => setActiveDirectoryTab('local')}
+                  className={`group inline-flex items-center justify-between lg:justify-start gap-[6px] sm:gap-[8px] px-[12px] sm:px-[14px] py-[10px] rounded-xl border lg:rounded-none lg:border-0 lg:border-b-2 lg:px-0 lg:pt-[2px] lg:pb-[12px] lg:-mb-px text-[13px] sm:text-[13.5px] whitespace-nowrap transition-colors duration-150 cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#E7621B] ${
+                    activeDirectoryTab === 'local'
+                      ? 'bg-white border-[#FAD6C2] text-[#1A1A1A] font-bold lg:bg-transparent lg:border-b-[#E7621B]'
+                      : 'bg-white/60 border-[#EBEBEB] text-[#525252] hover:text-[#1A1A1A] hover:bg-white font-medium lg:bg-transparent lg:border-b-transparent lg:hover:bg-transparent'
+                  }`}
+                >
+                  <span className="inline-flex items-center gap-[8px]">
+                    <Globe2
+                      className={`w-[15px] h-[15px] shrink-0 transition-colors ${
+                        activeDirectoryTab === 'local' ? 'text-[#E7621B]' : 'text-[#8A8A8A] group-hover:text-[#E7621B]'
+                      }`}
+                    />
+                    <span>Penomoran Lokal</span>
+                  </span>
+                  <span aria-hidden="true" className="hidden lg:inline text-[#D4D4D4] font-normal">
+                    ·
+                  </span>
+                  <span
+                    className={`text-[12px] tabular-nums ${
+                      activeDirectoryTab === 'local' ? 'text-[#B84408] font-semibold' : 'text-[#737373] font-normal'
+                    }`}
+                  >
+                    22 Kota
+                  </span>
+                </button>
+
+                <span aria-hidden="true" role="presentation" className="hidden lg:block w-px h-[16px] bg-[#E0E0E0] shrink-0 self-start mt-[4px]" />
+
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={activeDirectoryTab === 'mobile'}
+                  onClick={() => setActiveDirectoryTab('mobile')}
+                  className={`group inline-flex items-center justify-between lg:justify-start gap-[6px] sm:gap-[8px] px-[12px] sm:px-[14px] py-[10px] rounded-xl border lg:rounded-none lg:border-0 lg:border-b-2 lg:px-0 lg:pt-[2px] lg:pb-[12px] lg:-mb-px text-[13px] sm:text-[13.5px] whitespace-nowrap transition-colors duration-150 cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#E7621B] ${
+                    activeDirectoryTab === 'mobile'
+                      ? 'bg-white border-[#FAD6C2] text-[#1A1A1A] font-bold lg:bg-transparent lg:border-b-[#E7621B]'
+                      : 'bg-white/60 border-[#EBEBEB] text-[#525252] hover:text-[#1A1A1A] hover:bg-white font-medium lg:bg-transparent lg:border-b-transparent lg:hover:bg-transparent'
+                  }`}
+                >
+                  <span className="inline-flex items-center gap-[8px]">
+                    <Smartphone
+                      className={`w-[15px] h-[15px] shrink-0 transition-colors ${
+                        activeDirectoryTab === 'mobile' ? 'text-[#E7621B]' : 'text-[#8A8A8A] group-hover:text-[#E7621B]'
+                      }`}
+                    />
+                    <span>Mobile Indonesia</span>
+                  </span>
+                  <span aria-hidden="true" className="hidden lg:inline text-[#D4D4D4] font-normal">
+                    ·
+                  </span>
+                  <span
+                    className={`text-[12px] tabular-nums ${
+                      activeDirectoryTab === 'mobile' ? 'text-[#B84408] font-semibold' : 'text-[#737373] font-normal'
+                    }`}
+                  >
+                    {INDONESIA_MOBILE_PREFIXES.length} Operator
+                  </span>
+                </button>
+
+                <span aria-hidden="true" role="presentation" className="hidden lg:block w-px h-[16px] bg-[#E0E0E0] shrink-0 self-start mt-[4px]" />
+
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={activeDirectoryTab === 'callcenter'}
+                  onClick={() => setActiveDirectoryTab('callcenter')}
+                  className={`group inline-flex items-center justify-between lg:justify-start gap-[6px] sm:gap-[8px] px-[12px] sm:px-[14px] py-[10px] rounded-xl border lg:rounded-none lg:border-0 lg:border-b-2 lg:px-0 lg:pt-[2px] lg:pb-[12px] lg:-mb-px text-[13px] sm:text-[13.5px] whitespace-nowrap transition-colors duration-150 cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#E7621B] ${
+                    activeDirectoryTab === 'callcenter'
+                      ? 'bg-white border-[#FAD6C2] text-[#1A1A1A] font-bold lg:bg-transparent lg:border-b-[#E7621B]'
+                      : 'bg-white/60 border-[#EBEBEB] text-[#525252] hover:text-[#1A1A1A] hover:bg-white font-medium lg:bg-transparent lg:border-b-transparent lg:hover:bg-transparent'
+                  }`}
+                >
+                  <span className="inline-flex items-center gap-[8px]">
+                    <Headphones
+                      className={`w-[15px] h-[15px] shrink-0 transition-colors ${
+                        activeDirectoryTab === 'callcenter' ? 'text-[#E7621B]' : 'text-[#8A8A8A] group-hover:text-[#E7621B]'
+                      }`}
+                    />
+                    <span>Pusat Panggilan (Call Center)</span>
+                  </span>
+                  <span aria-hidden="true" className="hidden lg:inline text-[#D4D4D4] font-normal">
+                    ·
+                  </span>
+                  <span
+                    className={`text-[12px] tabular-nums ${
+                      activeDirectoryTab === 'callcenter' ? 'text-[#B84408] font-semibold' : 'text-[#737373] font-normal'
+                    }`}
+                  >
+                    {callCenterData.total.toLocaleString('id-ID')}
+                  </span>
+                </button>
+
+                <span aria-hidden="true" role="presentation" className="hidden lg:block w-px h-[16px] bg-[#E0E0E0] shrink-0 self-start mt-[4px]" />
+
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={activeDirectoryTab === 'in'}
+                  onClick={() => setActiveDirectoryTab('in')}
+                  className={`group inline-flex items-center justify-between lg:justify-start gap-[6px] sm:gap-[8px] px-[12px] sm:px-[14px] py-[10px] rounded-xl border lg:rounded-none lg:border-0 lg:border-b-2 lg:px-0 lg:pt-[2px] lg:pb-[12px] lg:-mb-px text-[13px] sm:text-[13.5px] whitespace-nowrap transition-colors duration-150 cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#E7621B] ${
+                    activeDirectoryTab === 'in'
+                      ? 'bg-white border-[#FAD6C2] text-[#1A1A1A] font-bold lg:bg-transparent lg:border-b-[#E7621B]'
+                      : 'bg-white/60 border-[#EBEBEB] text-[#525252] hover:text-[#1A1A1A] hover:bg-white font-medium lg:bg-transparent lg:border-b-transparent lg:hover:bg-transparent'
+                  }`}
+                >
+                  <span className="inline-flex items-center gap-[8px] min-w-0">
+                    <PhoneForwarded
+                      className={`w-[15px] h-[15px] shrink-0 transition-colors ${
+                        activeDirectoryTab === 'in' ? 'text-[#E7621B]' : 'text-[#8A8A8A] group-hover:text-[#E7621B]'
+                      }`}
+                    />
+                    <span className="truncate">Intelligent Network (IN)</span>
+                  </span>
+                  <span aria-hidden="true" className="hidden lg:inline text-[#D4D4D4] font-normal">
+                    ·
+                  </span>
+                  <span
+                    className={`text-[11.5px] font-mono tabular-nums shrink-0 ${
+                      activeDirectoryTab === 'in' ? 'text-[#B84408] font-semibold' : 'text-[#737373] font-normal'
+                    }`}
+                  >
+                    0800/0804/0807
+                  </span>
+                </button>
+              </div>
+
+              {/* TAB 1: Penomoran Lokal (22 Kota) */}
+              {activeDirectoryTab === 'local' && (
+                <div className="space-y-[18px]">
+                  <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-[14px]">
+                    <div className="flex flex-wrap items-center gap-[8px]" role="group" aria-label="Filter wilayah Indonesia">
+                      {REGIONS.map((region) => {
+                        const selected = selectedRegion === region;
+                        return (
+                          <button
+                            key={region}
+                            type="button"
+                            onClick={() => setSelectedRegion(region)}
+                            className={`px-[14px] py-[8px] rounded-lg text-[12.5px] font-semibold transition-colors whitespace-nowrap shrink-0 cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#E7621B] ${
+                              selected
+                                ? 'bg-[#1A1A1A] text-white'
+                                : 'bg-white border border-[#E5E5E5] text-[#404040] hover:border-[#1A1A1A]'
+                            }`}
+                          >
+                            {region}
+                          </button>
+                        );
+                      })}
+                    </div>
+
+                    <div className="relative w-full lg:w-[276px]">
+                      <label htmlFor="city-search-input" className="sr-only">
+                        Cari kota atau kode area
+                      </label>
+                      <Search className="w-4 h-4 text-[#525252] absolute left-[14px] top-1/2 -translate-y-1/2 pointer-events-none" />
+                      <input
+                        id="city-search-input"
+                        type="text"
+                        value={cityQuery}
+                        onChange={(e) => setCityQuery(e.target.value)}
+                        placeholder="Cari kota atau kode (mis. 031)..."
+                        className="w-full pl-[40px] pr-[14px] py-[9px] min-h-[42px] bg-white border border-[#E5E5E5] rounded-lg text-[13.5px] text-[#1A1A1A] placeholder:text-[#737373] focus:outline-none focus:border-[#E7621B]"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="text-[12px] text-[#666666] tabular-nums">
+                    <span>
+                      Menampilkan <strong className="text-[#1A1A1A]">{filteredCities.length}</strong> dari {COVERAGE_CITIES.length} kota cakupan
+                    </span>
+                  </div>
+
+                  {filteredCities.length === 0 ? (
+                    <div className="bg-white border border-[#E5E5E5] rounded-xl p-[24px] text-center">
+                      <p className="text-[14px] font-medium text-[#1A1A1A]">
+                        Kota atau kode area tidak ditemukan untuk kata kunci "{cityQuery}".
+                      </p>
                       <button
-                        key={region}
                         type="button"
-                        onClick={() => setSelectedRegion(region)}
-                        className={`px-[14px] py-[8px] rounded-lg text-[12.5px] font-semibold transition-colors whitespace-nowrap shrink-0 cursor-pointer ${
-                          selected
+                        onClick={() => {
+                          setSelectedRegion('Semua');
+                          setCityQuery('');
+                        }}
+                        className="mt-[10px] text-[13px] font-semibold text-[#B84408] hover:underline cursor-pointer"
+                      >
+                        Tampilkan semua 22 kota
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-[10px]">
+                      {filteredCities.map((item) => (
+                        <button
+                          key={`${item.city}-${item.areaCode}`}
+                          type="button"
+                          onClick={() => onSelectSolutionForConsultation(`Nomor Lokal ${item.city} (${item.areaCode})`)}
+                          className="group bg-white border border-[#E5E5E5] rounded-xl p-[14px] text-left flex flex-col justify-between gap-[4px] hover:border-[#E7621B] hover:bg-[#FFF9F6] transition-colors cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#E7621B]"
+                        >
+                          <div className="flex items-center justify-between w-full">
+                            <span className="font-mono text-[12.5px] font-semibold text-[#B84408] tabular-nums">
+                              ({item.areaCode})
+                            </span>
+                            <ArrowRight className="w-3 h-3 text-[#B84408] opacity-0 group-hover:opacity-100 transition-opacity" />
+                          </div>
+                          <span className="font-display text-[14.5px] font-bold text-[#1A1A1A]">
+                            {item.city}
+                          </span>
+                          <span className="text-[11.5px] text-[#525252]">{item.province}</span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* TAB 2: Mobile Indonesia */}
+              {activeDirectoryTab === 'mobile' && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-[16px]">
+                  {INDONESIA_MOBILE_PREFIXES.map((op) => (
+                    <button
+                      key={op.operator}
+                      type="button"
+                      onClick={() => onSelectSolutionForConsultation(`Mobile Indonesia — ${op.operator}`)}
+                      className="group bg-white rounded-xl p-[20px] border border-[#E5E5E5] hover:border-[#E7621B] hover:bg-[#FFF9F6] flex items-center justify-between gap-[12px] text-left transition-colors cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#E7621B]"
+                    >
+                      <div className="flex items-center gap-[12px]">
+                        <div className="w-9 h-9 rounded-lg bg-[#FFF5F0] text-[#B84408] flex items-center justify-center shrink-0">
+                          <Smartphone className="w-4 h-4" />
+                        </div>
+                        <h5 className="font-display text-[15.5px] font-bold text-[#1A1A1A] group-hover:text-[#B84408] transition-colors">
+                          {op.operator}
+                        </h5>
+                      </div>
+                      <ArrowRight className="w-4 h-4 text-[#B84408] opacity-0 group-hover:opacity-100 transition-opacity shrink-0" />
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              {/* TAB 3: Kode Akses Pusat Panggilan Informasi (Call Center 140XY, 150XYZ, 1500XYZ - Data Resmi Komdigi) */}
+              {activeDirectoryTab === 'callcenter' && (
+                <div className="space-y-[18px]">
+                  {/* Official Komdigi Sync Banner with On-Demand Refresh (No Pill Clutter) */}
+                  <div className="bg-white border border-[#FAD6C2] rounded-xl p-[18px] sm:p-[22px] flex flex-col lg:flex-row lg:items-center justify-between gap-[16px]">
+                    <h4 className="font-display text-[17px] font-bold text-[#1A1A1A] leading-snug">
+                      Ketersediaan Nomor Kode Akses Pusat Panggilan Informasi (Call Center)
+                    </h4>
+
+                    <div className="flex flex-wrap sm:flex-nowrap items-center gap-[10px] shrink-0">
+                      <button
+                        type="button"
+                        onClick={handleRefreshKomdigi}
+                        disabled={isSyncingKomdigi}
+                        className="inline-flex items-center justify-center gap-[8px] px-[16px] py-[10px] min-h-[42px] rounded-lg bg-[#E7621B] hover:bg-[#B84408] disabled:opacity-75 text-white text-[12.5px] font-bold transition-colors cursor-pointer disabled:cursor-not-allowed whitespace-nowrap focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#E7621B]"
+                        title="Ambil data ketersediaan nomor terbaru langsung dari portal Dittel Komdigi RI"
+                      >
+                        <RefreshCw className={`w-3.5 h-3.5 shrink-0 ${isSyncingKomdigi ? 'animate-spin' : ''}`} />
+                        <span>{isSyncingKomdigi ? 'Menyinkronkan...' : 'Segarkan Data'}</span>
+                      </button>
+
+                      <a
+                        href="https://dittel.komdigi.go.id/informasi/data-perizinan/data-alokasi-penomoran-telekomunikasi-tersedia.html"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center justify-center gap-[6px] px-[14px] py-[10px] min-h-[42px] rounded-lg bg-white border border-[#E0E0E0] hover:border-[#1A1A1A] text-[12.5px] font-semibold text-[#404040] hover:text-[#1A1A1A] whitespace-nowrap transition-colors"
+                      >
+                        <span>Portal Komdigi</span>
+                        <ExternalLink className="w-3.5 h-3.5" />
+                      </a>
+                    </div>
+                  </div>
+
+                  {/* Semantic Sync Status Feedback (Loading = Amber, Success = Green, Error = Red) */}
+                  {syncFeedback && (
+                    <div
+                      role="status"
+                      aria-live="polite"
+                      className={`flex items-center gap-[10px] px-[16px] py-[10px] rounded-xl border text-[12.5px] font-medium ${
+                        syncStatus === 'loading'
+                          ? 'bg-[#FFF8F5] border-[#FAD6C2] text-[#9A3412]'
+                          : syncStatus === 'error'
+                            ? 'bg-[#FEF2F2] border-[#FECACA] text-[#991B1B]'
+                            : 'bg-[#F0FDF4] border-[#BBF7D0] text-[#166534]'
+                      }`}
+                    >
+                      {syncStatus === 'loading' ? (
+                        <RefreshCw className="w-4 h-4 shrink-0 animate-spin text-[#E7621B]" />
+                      ) : syncStatus === 'error' ? (
+                        <AlertCircle className="w-4 h-4 shrink-0 text-[#DC2626]" />
+                      ) : (
+                        <CheckCircle2 className="w-4 h-4 shrink-0 text-[#16A34A]" />
+                      )}
+                      <span>{syncFeedback}</span>
+                    </div>
+                  )}
+
+                  {/* Format Sub-filter & Search Bar */}
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-[14px]">
+                    <div className="flex flex-wrap items-center gap-[6px]">
+                      <button
+                        type="button"
+                        onClick={() => handleCallCenterSubTabChange('all')}
+                        className={`px-[14px] py-[8px] rounded-lg text-[12.5px] font-semibold transition-colors whitespace-nowrap shrink-0 cursor-pointer tabular-nums ${
+                          callCenterSubTab === 'all'
                             ? 'bg-[#1A1A1A] text-white'
-                            : 'bg-white border border-[#EBEBEB] text-[#404040] hover:border-[#1A1A1A]'
+                            : 'bg-white border border-[#E5E5E5] text-[#525252] hover:border-[#1A1A1A]'
                         }`}
                       >
-                        {region}
+                        Semua ({callCenterData.total.toLocaleString('id-ID')})
                       </button>
-                    );
-                  })}
-                </div>
 
-                <div className="relative w-full lg:w-[276px]">
-                  <label htmlFor="city-search-input" className="sr-only">
-                    Cari kota atau kode area
-                  </label>
-                  <Search className="w-4 h-4 text-[#525252] absolute left-[16px] top-1/2 -translate-y-1/2 pointer-events-none" />
-                  <input
-                    id="city-search-input"
-                    type="text"
-                    value={cityQuery}
-                    onChange={(e) => setCityQuery(e.target.value)}
-                    placeholder="Cari kota atau kode (mis. 031)..."
-                    className="w-full pl-[42px] pr-[16px] py-[9px] min-h-[42px] bg-white border border-[#EBEBEB] rounded-lg text-[13.5px] text-[#1A1A1A] placeholder:text-[#737373] focus:outline-none focus:border-[#E7621B]"
-                  />
-                </div>
-              </div>
+                      <button
+                        type="button"
+                        onClick={() => handleCallCenterSubTabChange('140')}
+                        className={`px-[14px] py-[8px] rounded-lg text-[12.5px] font-semibold transition-colors whitespace-nowrap shrink-0 cursor-pointer tabular-nums ${
+                          callCenterSubTab === '140'
+                            ? 'bg-[#1A1A1A] text-white'
+                            : 'bg-white border border-[#E5E5E5] text-[#525252] hover:border-[#1A1A1A]'
+                        }`}
+                      >
+                        140XY ({callCenterData.count140.toLocaleString('id-ID')})
+                      </button>
 
-              {filteredCities.length === 0 ? (
-                <div className="bg-white border border-[#EBEBEB] rounded-[12px] p-[24px] text-center">
-                  <p className="text-[14px] font-medium text-[#1A1A1A]">
-                    Kota atau kode area tidak ditemukan untuk kata kunci "{cityQuery}".
-                  </p>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setSelectedRegion('Semua');
-                      setCityQuery('');
-                    }}
-                    className="mt-[10px] text-[13px] font-semibold text-[#B84408] hover:underline cursor-pointer"
-                  >
-                    Tampilkan semua 22 kota
-                  </button>
-                </div>
-              ) : (
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-[10px]">
-                  {filteredCities.map((item) => (
-                    <div
-                      key={`${item.city}-${item.areaCode}`}
-                      className="bg-white border border-[#EBEBEB] rounded-[12px] p-[14px] flex flex-col justify-between gap-[4px] hover:border-[#C7C7C7] transition-colors"
-                    >
-                      <span className="font-mono text-[12.5px] font-semibold text-[#B84408] tabular-nums">
-                        ({item.areaCode})
-                      </span>
-                      <span className="font-display text-[14.5px] font-bold text-[#1A1A1A]">
-                        {item.city}
-                      </span>
-                      <span className="text-[11.5px] text-[#525252]">{item.province}</span>
+                      <button
+                        type="button"
+                        onClick={() => handleCallCenterSubTabChange('150')}
+                        className={`px-[14px] py-[8px] rounded-lg text-[12.5px] font-semibold transition-colors whitespace-nowrap shrink-0 cursor-pointer tabular-nums ${
+                          callCenterSubTab === '150'
+                            ? 'bg-[#1A1A1A] text-white'
+                            : 'bg-white border border-[#E5E5E5] text-[#525252] hover:border-[#1A1A1A]'
+                        }`}
+                      >
+                        150XYZ ({callCenterData.count150.toLocaleString('id-ID')})
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => handleCallCenterSubTabChange('1500')}
+                        className={`px-[14px] py-[8px] rounded-lg text-[12.5px] font-semibold transition-colors whitespace-nowrap shrink-0 cursor-pointer tabular-nums ${
+                          callCenterSubTab === '1500'
+                            ? 'bg-[#1A1A1A] text-white'
+                            : 'bg-white border border-[#E5E5E5] text-[#525252] hover:border-[#1A1A1A]'
+                        }`}
+                      >
+                        1500XYZ ({callCenterData.count1500.toLocaleString('id-ID')})
+                      </button>
                     </div>
-                  ))}
+
+                    <div className="relative w-full sm:w-[260px]">
+                      <label htmlFor="callcenter-search-input" className="sr-only">
+                        Cari nomor Call Center
+                      </label>
+                      <Search className="w-4 h-4 text-[#737373] absolute left-[14px] top-1/2 -translate-y-1/2 pointer-events-none" />
+                      <input
+                        id="callcenter-search-input"
+                        type="text"
+                        value={callCenterQuery}
+                        onChange={(e) => handleCallCenterQueryChange(e.target.value)}
+                        placeholder="Cari nomor (mis. 140, 1500)..."
+                        className="w-full pl-[38px] pr-[14px] py-[8px] min-h-[40px] bg-white border border-[#E5E5E5] rounded-lg text-[13px] text-[#1A1A1A] placeholder:text-[#737373] focus:outline-none focus:border-[#E7621B]"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Interactive Number Grid */}
+                  <div className="bg-white rounded-xl border border-[#E5E5E5] p-[16px] sm:p-[20px]">
+                    <div className="mb-[14px] text-[12px] text-[#666666] border-b border-[#F0F0F0] pb-[10px] tabular-nums">
+                      <span>
+                        Menampilkan <strong className="text-[#1A1A1A]">{displayedCallCenterNumbers.length.toLocaleString('id-ID')}</strong> dari{' '}
+                        <strong className="text-[#1A1A1A]">{filteredCallCenterNumbers.length.toLocaleString('id-ID')}</strong> nomor tersedia
+                      </span>
+                    </div>
+
+                    {displayedCallCenterNumbers.length === 0 ? (
+                      <div className="py-[28px] text-center space-y-[8px]">
+                        <p className="text-[13.5px] text-[#525252]">
+                          Nomor tidak ditemukan untuk pencarian "{callCenterQuery}".
+                        </p>
+                        <button
+                          type="button"
+                          onClick={() => handleCallCenterQueryChange('')}
+                          className="text-[13px] font-semibold text-[#B84408] hover:underline cursor-pointer"
+                        >
+                          Reset pencarian
+                        </button>
+                      </div>
+                    ) : (
+                      <>
+                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-[8px]">
+                          {displayedCallCenterNumbers.map((num) => (
+                            <button
+                              key={num}
+                              type="button"
+                              onClick={() => onSelectSolutionForConsultation(`Pengajuan Nomor Call Center ${num}`)}
+                              className="group px-[12px] py-[10px] rounded-lg border border-[#EBEBEB] hover:border-[#E7621B] hover:bg-[#FFF9F6] transition-colors flex items-center justify-between gap-[6px] text-left cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#E7621B]"
+                            >
+                              <span className="font-mono text-[14px] font-bold text-[#1A1A1A] group-hover:text-[#B84408] tracking-tight tabular-nums">
+                                {num}
+                              </span>
+                              <span className="text-[10.5px] font-medium text-[#737373] group-hover:text-[#B84408] transition-colors">
+                                {getCallCenterFormatLabel(num)}
+                              </span>
+                            </button>
+                          ))}
+                        </div>
+
+                        {visibleCallCenterCount < filteredCallCenterNumbers.length && (
+                          <div className="mt-[16px] flex justify-center">
+                            <button
+                              type="button"
+                              onClick={() => setVisibleCallCenterCount((prev) => prev + PAGE_SIZE)}
+                              className="inline-flex items-center gap-[8px] px-[18px] py-[9px] rounded-lg bg-[#F8F9FA] hover:bg-[#EFEFEF] border border-[#E0E0E0] text-[12.5px] font-semibold text-[#1A1A1A] transition-colors cursor-pointer tabular-nums"
+                            >
+                              <span>
+                                Tampilkan Lebih Banyak (sisa {(filteredCallCenterNumbers.length - visibleCallCenterCount).toLocaleString('id-ID')} nomor)
+                              </span>
+                            </button>
+                          </div>
+                        )}
+                      </>
+                    )}
+
+                  </div>
+                </div>
+              )}
+
+              {/* TAB 4: Kode Akses Intelligent Network (IN) - Stok Eksklusif Non-Komdigi */}
+              {activeDirectoryTab === 'in' && (
+                <div className="space-y-[20px]">
+                  <div className="pb-[16px] border-b border-[#E5E5E5] space-y-[4px]">
+                    <div className="flex flex-wrap items-center gap-[6px] text-[12px] font-semibold">
+                      <span className="text-[#B84408]">Jaringan Eksklusif Voxnet</span>
+                      <span aria-hidden="true" className="text-[#D4D4D4]">·</span>
+                      <span className="text-[#666666]">Pengelolaan Mandiri Non-Komdigi</span>
+                    </div>
+                    <h4 className="font-display text-[16px] font-bold text-[#1A1A1A]">
+                      Layanan Penomoran Jaringan Pintar — Intelligent Network (IN)
+                    </h4>
+                    <p className="text-[13px] text-[#525252] leading-[1.6] max-w-[82ch]">
+                      Fleksibilitas pembebanan biaya panggilan nasional melalui format{' '}
+                      <span className="font-mono font-semibold text-[#1A1A1A] whitespace-nowrap">0800-1-XXXX</span> (Bebas Pulsa),{' '}
+                      <span className="font-mono font-semibold text-[#1A1A1A] whitespace-nowrap">0804-1-XXXX</span> (Bagi Biaya), dan{' '}
+                      <span className="font-mono font-semibold text-[#1A1A1A] whitespace-nowrap">0807-1-XXXX</span> (Tarif Lokal Tunggal) pada jaringan trunking Voxnet.
+                    </p>
+                  </div>
+
+                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-[16px] items-stretch">
+                    {INTELLIGENT_NETWORK_SERVICES.map((inService) => (
+                      <div
+                        key={inService.prefix}
+                        className="bg-white rounded-xl p-[22px] border border-[#E5E5E5] flex flex-col justify-between gap-[18px]"
+                      >
+                        <div className="space-y-[12px]">
+                          <div className="space-y-[4px]">
+                            <span className="text-[11.5px] font-semibold text-[#B84408] block">
+                              {inService.type}
+                            </span>
+                            <div className="font-mono text-[19px] font-bold text-[#1A1A1A] tracking-tight tabular-nums">
+                              {inService.prefix}
+                            </div>
+                          </div>
+
+                          <div className="space-y-[6px]">
+                            <h5 className="font-display text-[15px] font-bold text-[#1A1A1A] leading-snug">
+                              {inService.name}
+                            </h5>
+                            <p className="text-[12.5px] text-[#525252] leading-[1.6]">
+                              {inService.description}
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="space-y-[14px] pt-[14px] border-t border-[#F0F0F0]">
+                          <div className="space-y-[3px] text-[12px]">
+                            <span className="font-semibold text-[#1A1A1A] block">
+                              Skema Pembebanan Biaya
+                            </span>
+                            <p className="text-[#666666] leading-[1.5]">
+                              {inService.billingModel}
+                            </p>
+                          </div>
+
+                          <div className="space-y-[8px]">
+                            <span className="text-[11.5px] font-semibold text-[#525252] block">
+                              Contoh Nomor Siap Aktif (Klik untuk Pilih)
+                            </span>
+                            <div className="grid grid-cols-2 gap-[6px]">
+                              {inService.sampleStock.map((num) => (
+                                <button
+                                  key={num}
+                                  type="button"
+                                  onClick={() => onSelectSolutionForConsultation(`Aktivasi Nomor IN ${num}`)}
+                                  className="font-mono text-[12px] font-semibold text-[#1A1A1A] hover:text-[#B84408] bg-[#F8F9FA] hover:bg-[#FFF5F0] border border-[#EBEBEB] hover:border-[#E7621B] px-[8px] py-[6px] rounded-md text-center tabular-nums transition-colors cursor-pointer"
+                                >
+                                  {num}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+
+                          <button
+                            type="button"
+                            onClick={() => onSelectSolutionForConsultation(`Aktivasi Nomor ${inService.prefix}`)}
+                            className="w-full py-[10px] px-[14px] min-h-[42px] rounded-lg bg-[#F8F9FA] hover:bg-[#E7621B] text-[#1A1A1A] hover:text-white border border-[#E0E0E0] hover:border-[#E7621B] text-[13px] font-semibold inline-flex items-center justify-center gap-[6px] transition-colors cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#E7621B]"
+                          >
+                            <span>Konsultasikan {inService.prefix.split('-')[0]}</span>
+                            <ArrowRight className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               )}
             </div>

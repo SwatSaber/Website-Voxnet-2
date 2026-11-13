@@ -13,6 +13,7 @@ export interface SizingInput {
 
 export interface SizingRecommendation {
   recommendedChannels: number;
+  estimatedMonthlyMinutes: number;
   sbcTopology: string;
   pbxLabel: string;
   numberingLabel: string;
@@ -44,9 +45,9 @@ const PBX_LABELS: Record<PbxMode, string> = {
 };
 
 const NUMBERING_LABELS: Record<NumberingMode, string> = {
-  'local-22': 'Nomor Lokal Resmi (22 Kota)',
-  '1500': 'Nomor Pusat Panggilan 1500',
-  '0800': 'Nomor Bebas Pulsa 0800',
+  'local-22': 'Penomoran Lokal Resmi (22 Kota)',
+  '1500': 'Call Center Komdigi (140XY / 150XYZ / 1500XYZ)',
+  '0800': 'Intelligent Network (0800 / 0804 / 0807)',
 };
 
 export function calculateInfrastructureRecommendation(input: SizingInput): SizingRecommendation {
@@ -59,6 +60,7 @@ export function calculateInfrastructureRecommendation(input: SizingInput): Sizin
   const erlangLoad = (peakCallsPerHour * 3.5) / 60;
   const rawChannels = Math.ceil((erlangLoad * 1.25) / 10) * 10;
   const recommendedChannels = Math.max(30, rawChannels);
+  const estimatedMonthlyMinutes = Math.round(safeCalls * 3.5 * 22);
 
   const sbcTopology =
     recommendedChannels >= 250 || input.sector === 'bpo' || input.sector === 'global-telco'
@@ -73,10 +75,11 @@ export function calculateInfrastructureRecommendation(input: SizingInput): Sizin
   const pbxLabel = PBX_LABELS[input.pbxMode];
   const numberingLabel = NUMBERING_LABELS[input.numbering];
 
-  const summaryText = `Estimasi kebutuhan: ~${recommendedChannels} kanal SIP konkuren (${safeCalls.toLocaleString('id-ID')} panggilan/hari) dengan arsitektur ${pbxLabel}, ${sbcTopology}, dan ${numberingLabel}.`;
+  const summaryText = `Estimasi kebutuhan: ~${recommendedChannels} kanal SIP konkuren (${safeCalls.toLocaleString('id-ID')} panggilan/hari, ~${estimatedMonthlyMinutes.toLocaleString('id-ID')} menit/bln) dengan ${pbxLabel}, ${sbcTopology}, dan ${numberingLabel}.`;
 
   return {
     recommendedChannels,
+    estimatedMonthlyMinutes,
     sbcTopology,
     pbxLabel,
     numberingLabel,
@@ -103,6 +106,42 @@ export function filterCoverageCities(
       item.province.toLowerCase().includes(normalizedQuery)
     );
   });
+}
+
+export type CallCenterFormat = 'all' | '140' | '150' | '1500';
+
+export interface CallCenterNumberGroups {
+  allNumbers: string[];
+  sample140: string[];
+  sample150: string[];
+  sample1500: string[];
+}
+
+export function getCallCenterFormatLabel(num: string): '140XY' | '1500XYZ' | '150XYZ' {
+  if (num.startsWith('140')) return '140XY';
+  if (num.startsWith('1500')) return '1500XYZ';
+  return '150XYZ';
+}
+
+export function filterCallCenterNumbers(
+  data: CallCenterNumberGroups,
+  format: CallCenterFormat,
+  searchQuery: string
+): string[] {
+  let list: string[];
+  if (format === '140') {
+    list = data.sample140 || [];
+  } else if (format === '150') {
+    list = data.sample150 || [];
+  } else if (format === '1500') {
+    list = data.sample1500 || [];
+  } else {
+    list = data.allNumbers || [];
+  }
+
+  const normalized = searchQuery.trim();
+  if (!normalized) return list;
+  return list.filter((num) => num.includes(normalized));
 }
 
 export function validateConsultationForm(data: ConsultationFormData): {
