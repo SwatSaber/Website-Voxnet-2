@@ -707,23 +707,6 @@ export function SolutionsSection({ onSelectSolutionForConsultation }: SolutionsS
               {/* TAB 4: Kode Akses Intelligent Network (IN) - Stok Eksklusif Non-Komdigi */}
               {activeDirectoryTab === 'in' && (
                 <div className="space-y-[20px]">
-                  <div className="pb-[16px] border-b border-[#E5E5E5] space-y-[4px]">
-                    <div className="flex flex-wrap items-center gap-[6px] text-[12px] font-semibold">
-                      <span className="text-[#B84408]">Jaringan Eksklusif Voxnet</span>
-                      <span aria-hidden="true" className="text-[#D4D4D4]">·</span>
-                      <span className="text-[#666666]">Pengelolaan Mandiri Non-Komdigi</span>
-                    </div>
-                    <h4 className="font-display text-[16px] font-bold text-[#1A1A1A]">
-                      Layanan Penomoran Jaringan Pintar — Intelligent Network (IN)
-                    </h4>
-                    <p className="text-[13px] text-[#525252] leading-[1.6] max-w-[82ch]">
-                      Fleksibilitas pembebanan biaya panggilan nasional melalui format{' '}
-                      <span className="font-mono font-semibold text-[#1A1A1A] whitespace-nowrap">0800-1-XXXX</span> (Bebas Pulsa),{' '}
-                      <span className="font-mono font-semibold text-[#1A1A1A] whitespace-nowrap">0804-1-XXXX</span> (Bagi Biaya), dan{' '}
-                      <span className="font-mono font-semibold text-[#1A1A1A] whitespace-nowrap">0807-1-XXXX</span> (Tarif Lokal Tunggal) pada jaringan trunking Voxnet.
-                    </p>
-                  </div>
-
                   <div className="grid grid-cols-1 lg:grid-cols-3 gap-[16px] items-stretch">
                     {INTELLIGENT_NETWORK_SERVICES.map((inService) => (
                       <div
@@ -750,34 +733,7 @@ export function SolutionsSection({ onSelectSolutionForConsultation }: SolutionsS
                           </div>
                         </div>
 
-                        <div className="space-y-[14px] pt-[14px] border-t border-[#F0F0F0]">
-                          <div className="space-y-[3px] text-[12px]">
-                            <span className="font-semibold text-[#1A1A1A] block">
-                              Skema Pembebanan Biaya
-                            </span>
-                            <p className="text-[#666666] leading-[1.5]">
-                              {inService.billingModel}
-                            </p>
-                          </div>
-
-                          <div className="space-y-[8px]">
-                            <span className="text-[11.5px] font-semibold text-[#525252] block">
-                              Contoh Nomor Siap Aktif (Klik untuk Pilih)
-                            </span>
-                            <div className="grid grid-cols-2 gap-[6px]">
-                              {inService.sampleStock.map((num) => (
-                                <button
-                                  key={num}
-                                  type="button"
-                                  onClick={() => onSelectSolutionForConsultation(`Aktivasi Nomor IN ${num}`)}
-                                  className="font-mono text-[12px] font-semibold text-[#1A1A1A] hover:text-[#B84408] bg-[#F8F9FA] hover:bg-[#FFF5F0] border border-[#EBEBEB] hover:border-[#E7621B] px-[8px] py-[6px] rounded-md text-center tabular-nums transition-colors cursor-pointer"
-                                >
-                                  {num}
-                                </button>
-                              ))}
-                            </div>
-                          </div>
-
+                        <div className="pt-[14px] border-t border-[#F0F0F0]">
                           <button
                             type="button"
                             onClick={() => onSelectSolutionForConsultation(`Aktivasi Nomor ${inService.prefix}`)}
